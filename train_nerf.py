@@ -340,11 +340,8 @@ def main():
                 loss, fine_loss = 0.0, 0.0
                 if rgb_fine is not None:
                     fine_loss = img2mse(rgb_fine[..., :3], target_ray_values[..., :3])
-                    loss = fine_loss
-                else:
-                    loss = coarse_loss
                 loss = coarse_loss + fine_loss
-                psnr = mse2psnr(loss.item())
+                psnr = mse2psnr(fine_loss.item() if rgb_fine is not None else loss.item())
                 writer.add_scalar("validation/loss", loss.item(), i)
                 writer.add_scalar("validation/coarse_loss", coarse_loss.item(), i)
                 writer.add_scalar("validataion/psnr", psnr, i)
