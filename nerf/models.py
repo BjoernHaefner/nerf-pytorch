@@ -207,7 +207,7 @@ class FlexibleNeRFModel(torch.nn.Module):
         self.layer1 = torch.nn.Linear(self.dim_xyz, hidden_size)
         self.layers_xyz = torch.nn.ModuleList()
         for i in range(num_layers - 1):
-            if i % self.skip_connect_every == 0 and i > 0 and i != num_layers - 1:
+            if i % self.skip_connect_every == 0 and i > 0 and i != num_layers - 2:
                 self.layers_xyz.append(
                     torch.nn.Linear(self.dim_xyz + hidden_size, hidden_size)
                 )
@@ -240,7 +240,7 @@ class FlexibleNeRFModel(torch.nn.Module):
             if (
                 i % self.skip_connect_every == 0
                 and i > 0
-                and i != len(self.linear_layers) - 1
+                and i != len(self.layers_xyz) - 1
             ):
                 x = torch.cat((x, xyz), dim=-1)
             x = self.relu(self.layers_xyz[i](x))
