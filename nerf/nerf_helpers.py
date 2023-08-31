@@ -78,29 +78,29 @@ def get_ray_bundle(
       row index `j` and column index `i`.
       (TODO: double check if explanation of row and col indices convention is right).
     ray_directions (torch.Tensor): A tensor of shape :math:`(width, height, 3)` denoting the
-      direction of each ray (a unit vector). `ray_directions[i][j]` denotes the direction of the ray
+      direction of each ray. `ray_directions[i][j]` denotes the direction of the ray
       passing through the pixel at row index `j` and column index `i`.
       (TODO: double check if explanation of row and col indices convention is right).
     """
     # TESTED
-    ii, jj = meshgrid_xy(
+    xx, yy = meshgrid_xy(
         torch.arange(
             width, dtype=tform_cam2world.dtype, device=tform_cam2world.device
         ).to(tform_cam2world),
         torch.arange(
             height, dtype=tform_cam2world.dtype, device=tform_cam2world.device
         ),
-    )
+    )  # shape 2x(H, W)
     directions = torch.stack(
         [
-            (ii - width * 0.5) / focal_length,
-            -(jj - height * 0.5) / focal_length,
-            -torch.ones_like(ii),
+            (xx - width * 0.5) / focal_length,
+            -(yy - height * 0.5) / focal_length,
+            -torch.ones_like(xx),
         ],
         dim=-1,
-    )
+    )  # (H, W, 3)
     ray_directions = torch.einsum("mn,hwn->hwm", tform_cam2world[:3, :3], directions)
-    ray_origins = tform_cam2world[:3, -1].expand(ray_directions.shape)
+    ray_origins = tform_cam2world[:3, -1].expand(ray_directions.shape)  # (H, W, 3)
     return ray_origins, ray_directions
 
 
