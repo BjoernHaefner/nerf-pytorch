@@ -103,13 +103,12 @@ def load_blender_data(basedir, half_res=False, testskip=1, debug=False):
         W = W // 2
         focal = focal / 2.0
         imgs = [
-            torch.from_numpy(
                 cv2.resize(imgs[i], dsize=(H, W), interpolation=cv2.INTER_AREA)
-            )
             for i in range(imgs.shape[0])
         ]
-        imgs = torch.stack(imgs, 0)
+        imgs = np.stack(imgs, 0)
 
+    imgs = torch.from_numpy(imgs)
     poses = torch.from_numpy(poses)
 
     return imgs, poses, render_poses, [H, W, focal], i_split
