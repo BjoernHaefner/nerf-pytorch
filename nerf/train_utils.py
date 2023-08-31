@@ -5,12 +5,12 @@ from .nerf_helpers import sample_pdf_2 as sample_pdf
 from .volume_rendering_utils import volume_render_radiance_field
 
 
-def run_network(network_fn, pts, ray_batch, chunksize, embed_fn, embeddirs_fn):
+def run_network(network_fn, pts, ray_batch, embed_fn, embeddirs_fn, minibatch:int=4):
 
 
     radiance_fields = []
-    pts_batch = get_minibatches(pts, chunksize=pts.shape[0] // 4)
-    ray_batch = get_minibatches(ray_batch, chunksize=ray_batch.shape[0] // 4)
+    pts_batch = get_minibatches(pts, chunksize=pts.shape[0] // minibatch)
+    ray_batch = get_minibatches(ray_batch, chunksize=ray_batch.shape[0] // minibatch)
 
     for pts_minibatch, ray_minibatch in zip(pts_batch, ray_batch):
         pts_flat = pts_minibatch.reshape((-1, pts_minibatch.shape[-1]))
@@ -75,9 +75,9 @@ def predict_and_render_radiance(
         model_coarse,
         pts,
         ray_batch,
-        getattr(options.nerf, mode).chunksize,
         encode_position_fn,
         encode_direction_fn,
+        getattr(options.nerf, mode).minibatch
     )
 
     (
@@ -115,9 +115,9 @@ def predict_and_render_radiance(
             model_fine,
             pts,
             ray_batch,
-            getattr(options.nerf, mode).chunksize,
             encode_position_fn,
             encode_direction_fn,
+            getattr(options.nerf, mode).minibatch
         )
         rgb_fine, disp_fine, acc_fine, _, _ = volume_render_radiance_field(
             radiance_field,

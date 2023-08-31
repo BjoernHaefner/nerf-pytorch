@@ -91,6 +91,8 @@ nerf:
     # Size of each chunk (rays are batched into "chunks" and passed through
     # the network)
     chunksize: 8
+    # the rays are splitted into minibatch minibatches again. To save memory
+    minibatch: 1
     # Whether or not to perturb the sampled depth values.
     perturb: True
     # Number of depth samples per ray for the coarse network.
@@ -109,6 +111,8 @@ nerf:
     # Number of random rays to retain from each image.
     # These sampled rays are used for training, and the others are discarded.
     chunksize: 8
+    # the rays are splitted into minibatch minibatches again. To save memory
+    minibatch: 1
     # Whether or not to perturb the sampled depth values.
     perturb: False
     # Number of depth samples per ray for the coarse network.
