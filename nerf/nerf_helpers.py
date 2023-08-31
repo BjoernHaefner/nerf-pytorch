@@ -33,8 +33,7 @@ def meshgrid_xy(
       tensor2 (torch.Tensor): Tensor whose elements define the second dimension of the returned meshgrid.
     """
     # TESTED
-    ii, jj = torch.meshgrid(tensor1, tensor2)
-    return ii.transpose(-1, -2), jj.transpose(-1, -2)
+    return torch.meshgrid(tensor1, tensor2, indexing="xy")
 
 
 def cumprod_exclusive(tensor: torch.Tensor) -> torch.Tensor:
