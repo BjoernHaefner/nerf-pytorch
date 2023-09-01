@@ -22,7 +22,7 @@ def main():
         "--config", type=str, required=True, help="Path to (.yml) config file."
     )
     parser.add_argument(
-        "--load-checkpoint",
+        "--load_checkpoint",
         action='store_true',
         default=False,
         help="Load last checkpoint from given config",
