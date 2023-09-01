@@ -7,7 +7,7 @@ experiment:
   # Seed for random number generators (for repeatability).
   randomseed: 42  # Cause, why not?
   # Number of training iterations.
-  train_iters: 200000
+  train_iters: 500000
   # Number of training iterations after which to validate.
   validate_every: 100
   # Number of training iterations after which to checkpoint.
@@ -26,7 +26,7 @@ dataset:
   cachedir: cache/legocache200
   # For the Blender datasets (synthetic), optionally return images
   # at half the original resolution of 800 x 800, to save space.
-  half_res: True
+  half_res: False
   # Stride (include one per "testskip" images in the dataset).
   testskip: 1
   # Do not use NDC (normalized device coordinates). Usually True for
@@ -95,7 +95,7 @@ optimizer:
 # Learning rate schedule.
 scheduler:
   # Exponentially decay learning rate (in 1000 steps)
-  lr_decay: 250
+  lr_decay: 500
   # Rate at which to apply this decay.
   lr_decay_factor: 0.1
 
@@ -114,7 +114,7 @@ nerf:
     num_random_rays: 1024  # 32 * 32 * 4
     # Size of each chunk (rays are batched into "chunks" and passed through
     # the network)
-    chunksize: 131072  # 131072  # 1024 * 32
+    chunksize: 32768  # 1024 * 32
     # the rays are splitted into minibatch minibatches again. To save memory
     minibatch: 1
     # Whether or not to perturb the sampled depth values.
@@ -122,19 +122,19 @@ nerf:
     # Number of depth samples per ray for the coarse network.
     num_coarse: 64
     # Number of depth samples per ray for the fine network.
-    num_fine: 64
+    num_fine: 128
     # Whether to render models using a white background.
-    white_background: False
+    white_background: True
     # Standard deviation of noise to be added to the radiance field when
     # performing volume rendering.
-    radiance_field_noise_std: 0.2
+    radiance_field_noise_std: 1
     # Sample linearly in disparity space, as opposed to in depth space.
     lindisp: False
   # Validation-specific parameters.
   validation:
     # Number of random rays to retain from each image.
     # These sampled rays are used for training, and the others are discarded.
-    chunksize: 131072   # 1024 * 32
+    chunksize: 32768  # 1024 * 32
     # the rays are splitted into minibatch minibatches again. To save memory
     minibatch: 1
     # Whether or not to perturb the sampled depth values.
@@ -142,9 +142,9 @@ nerf:
     # Number of depth samples per ray for the coarse network.
     num_coarse: 64
     # Number of depth samples per ray for the fine network.
-    num_fine: 64
+    num_fine: 128
     # Whether to render models using a white background.
-    white_background: False
+    white_background: True
     # Standard deviation of noise to be added to the radiance field when
     # performing volume rendering.
     radiance_field_noise_std: 0.
