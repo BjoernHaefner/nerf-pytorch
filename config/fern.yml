@@ -61,7 +61,7 @@ models:
     type: FlexibleNeRFModel
     # Number of layers in the model before outputting density.
     num_layers_xyz: 9
-    # Number of layers in the model before outputting density.
+    # Number of layers in the model after outputting density.
     num_layers_dir: 1
     # Number of hidden units in each layer of the MLP (multi-layer
     # perceptron).
@@ -75,7 +75,7 @@ models:
     type: FlexibleNeRFModel
     # Number of layers in the model before outputting density.
     num_layers_xyz: 9
-    # Number of layers in the model before outputting density.
+    # Number of layers in the model after outputting density.
     num_layers_dir: 1
     # Number of hidden units in each layer of the MLP (multi-layer
     # perceptron).
