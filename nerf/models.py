@@ -78,57 +78,18 @@ class MultiHeadNeRFModel(torch.nn.Module):
         return torch.cat((x, sigma), dim=-1)
 
 
-class ReplicateNeRFModel(torch.nn.Module):
-    r"""NeRF model that follows the figure (from the supp. material of NeRF) to
-    every last detail. (ofc, with some flexibility)
+class PaperNeRFModel(torch.nn.Module):
+    r"""
+    NeRF model that follows Figure 7 from arxiv submission to every last detail:
+    https://arxiv.org/pdf/2003.08934.pdf
+    Figure 7 is up for interpretation. Interpretation is fixed using original code:
+    https://github.com/bmild/nerf/blob/18b8aebda6700ed659cb27a0c348b737a5f6ab60/run_nerf_helpers.py#L80
+
+    This model is equivalent to: FlexibleNeRFModel(9, 1, 256, 4, 10, 4)
     """
 
     def __init__(
         self,
-        hidden_size=256,
-        num_layers=4,
-        num_encoding_fn_xyz=6,
-        num_encoding_fn_dir=4,
-        include_input_xyz=True,
-        include_input_dir=True,
-    ):
-        super(ReplicateNeRFModel, self).__init__()
-        # xyz_encoding_dims = 3 + 3 * 2 * num_encoding_functions
-
-        self.dim_xyz = (3 if include_input_xyz else 0) + 2 * 3 * num_encoding_fn_xyz
-        self.dim_dir = (3 if include_input_dir else 0) + 2 * 3 * num_encoding_fn_dir
-
-        self.layer1 = torch.nn.Linear(self.dim_xyz, hidden_size)
-        self.layer2 = torch.nn.Linear(hidden_size, hidden_size)
-        self.layer3 = torch.nn.Linear(hidden_size, hidden_size)
-        self.fc_alpha = torch.nn.Linear(hidden_size, 1)
-
-        self.layer4 = torch.nn.Linear(hidden_size + self.dim_dir, hidden_size // 2)
-        self.layer5 = torch.nn.Linear(hidden_size // 2, hidden_size // 2)
-        self.fc_rgb = torch.nn.Linear(hidden_size // 2, 3)
-        self.relu = torch.nn.functional.relu
-
-    def forward(self, x):
-        xyz, direction = x[..., : self.dim_xyz], x[..., self.dim_xyz :]
-        x_ = self.relu(self.layer1(xyz))
-        x_ = self.relu(self.layer2(x_))
-        feat = self.layer3(x_)
-        alpha = self.fc_alpha(x_)
-        y_ = self.relu(self.layer4(torch.cat((feat, direction), dim=-1)))
-        y_ = self.relu(self.layer5(y_))
-        rgb = self.fc_rgb(y_)
-        return torch.cat((rgb, alpha), dim=-1)
-
-
-class PaperNeRFModel(torch.nn.Module):
-    r"""Implements the NeRF model as described in Fig. 7 (appendix) of the
-    arXiv submission (v0). """
-
-    def __init__(
-        self,
-        num_layers=8,
-        hidden_size=256,
-        skip_connect_every=4,
         num_encoding_fn_xyz=6,
         num_encoding_fn_dir=4,
         include_input_xyz=True,
@@ -137,56 +98,122 @@ class PaperNeRFModel(torch.nn.Module):
     ):
         super(PaperNeRFModel, self).__init__()
 
-        include_input_xyz = 3 if include_input_xyz else 0
-        include_input_dir = 3 if include_input_dir else 0
-        self.dim_xyz = include_input_xyz + 2 * 3 * num_encoding_fn_xyz
-        self.dim_dir = include_input_dir + 2 * 3 * num_encoding_fn_dir
-
-        self.layers_xyz = torch.nn.ModuleList()
+        hidden_size = 256
         self.use_viewdirs = use_viewdirs
-        self.layers_xyz.append(torch.nn.Linear(self.dim_xyz, 256))
-        for i in range(1, 8):
-            if i == 4:
-                self.layers_xyz.append(torch.nn.Linear(self.dim_xyz + 256, 256))
-            else:
-                self.layers_xyz.append(torch.nn.Linear(256, 256))
-        self.fc_feat = torch.nn.Linear(256, 256)
-        self.fc_alpha = torch.nn.Linear(256, 1)
 
-        self.layers_dir = torch.nn.ModuleList()
-        self.layers_dir.append(torch.nn.Linear(256 + self.dim_dir, 128))
-        for i in range(3):
-            self.layers_dir.append(torch.nn.Linear(128, 128))
-        self.fc_rgb = torch.nn.Linear(128, 3)
+        self.dim_xyz = (3 if include_input_xyz else 0) + 2 * 3 * num_encoding_fn_xyz
+        self.dim_dir = (3 if include_input_dir else 0) + 2 * 3 * num_encoding_fn_dir
+
+        self.layer_xyz0 = torch.nn.Linear(self.dim_xyz, hidden_size)
+        self.layers_xyz = torch.nn.ModuleList()
+        for ii in range(1,8):  # layer 1 -- 7
+            if ii == 4: # skip connection at fifth layer
+                self.layers_xyz.append(torch.nn.Linear(hidden_size + self.dim_xyz, hidden_size))
+            else:
+                self.layers_xyz.append(torch.nn.Linear(hidden_size, hidden_size))
+
+        if self.use_viewdirs:
+            self.fc_alpha = torch.nn.Linear(hidden_size, 1)
+            self.layer_xyz8 = torch.nn.Linear(hidden_size, hidden_size)
+            self.layer_dir0 = torch.nn.Linear(hidden_size + self.dim_dir, hidden_size // 2)
+            self.fc_rgb = torch.nn.Linear(hidden_size // 2, 3)
+        else:
+            self.output = torch.nn.Linear(hidden_size, 4)
         self.relu = torch.nn.functional.relu
 
     def forward(self, x):
-        xyz, dirs = x[..., : self.dim_xyz], x[..., self.dim_xyz :]
-        x = xyz
-        for i in range(8):
-            if i == 4:
-                x = self.layers_xyz[i](torch.cat((xyz, x), -1))
-            else:
-                x = self.layers_xyz[i](x)
-            x = self.relu(x)
-        feat = self.fc_feat(x)
-        alpha = self.fc_alpha(feat)
+        xyz, direction = x[..., : self.dim_xyz], x[..., self.dim_xyz :]
+        x_ = self.relu(self.layer_xyz0(xyz))
+        for ii, layer_xyz in enumerate(self.layers_xyz, 1):  # start counting at 1
+            if ii == 4:
+                x_ = torch.cat((x_, xyz), dim=-1)
+            x_ = self.relu(layer_xyz(x_))
+
         if self.use_viewdirs:
-            x = self.layers_dir[0](torch.cat((feat, dirs), -1))
+            alpha = self.fc_alpha(x_)
+            x_ = self.layer_xyz8(x_)
+            x_ = self.relu(self.layer_dir0(torch.cat((x_, direction), dim=-1)))
+            rgb = self.fc_rgb(x_)
+            return torch.cat((rgb, alpha), dim=-1)
         else:
-            x = self.layers_dir[0](feat)
-        x = self.relu(x)
-        for i in range(1, 3):
-            x = self.layers_dir[i](x)
-            x = self.relu(x)
-        rgb = self.fc_rgb(x)
-        return torch.cat((rgb, alpha), dim=-1)
+            return self.output(x_)
+
+
+class PaperNeRFModel_v1(torch.nn.Module):
+    r"""
+    NeRF model that follows Figure 7 from arxiv submission v1 to every last detail:
+    https://arxiv.org/pdf/2003.08934v1.pdf
+    Figure 7 is up for interpretation. Interpretation is fixed using original code, extrapolated to Figure 7:
+    https://github.com/bmild/nerf/blob/18b8aebda6700ed659cb27a0c348b737a5f6ab60/run_nerf_helpers.py#L80
+
+    This model is equivalent to: FlexibleNeRFModel(9, 4, 256, 4, 10, 4)
+    """
+
+    def __init__(
+        self,
+        num_encoding_fn_xyz=6,
+        num_encoding_fn_dir=4,
+        include_input_xyz=True,
+        include_input_dir=True,
+        use_viewdirs=True,
+    ):
+        super(PaperNeRFModel_v1, self).__init__()
+
+        hidden_size = 256
+        self.use_viewdirs = use_viewdirs
+
+        self.dim_xyz = (3 if include_input_xyz else 0) + 2 * 3 * num_encoding_fn_xyz
+        self.dim_dir = (3 if include_input_dir else 0) + 2 * 3 * num_encoding_fn_dir
+
+        self.layer_xyz0 = torch.nn.Linear(self.dim_xyz, hidden_size)
+        self.layers_xyz = torch.nn.ModuleList()
+        for ii in range(1,8):  # layer 1 -- 7
+            if ii == 4: # skip connection at fifth layer
+                self.layers_xyz.append(torch.nn.Linear(hidden_size + self.dim_xyz, hidden_size))
+            else:
+                self.layers_xyz.append(torch.nn.Linear(hidden_size, hidden_size))
+
+        if self.use_viewdirs:
+            self.fc_alpha = torch.nn.Linear(hidden_size, 1)
+            self.layer_xyz8 = torch.nn.Linear(hidden_size, hidden_size)
+            self.layer_dir0 = torch.nn.Linear(hidden_size + self.dim_dir, hidden_size // 2)
+
+            self.layers_dir = torch.nn.ModuleList()
+            for ii in range(10, 13):  # layer 10 -- 12
+                self.layers_dir.append(torch.nn.Linear(hidden_size // 2, hidden_size // 2))
+
+            self.fc_rgb = torch.nn.Linear(hidden_size // 2, 3)
+        else:
+            self.output = torch.nn.Linear(hidden_size, 4)
+
+        self.relu = torch.nn.functional.relu
+
+    def forward(self, x):
+        xyz, direction = x[..., : self.dim_xyz], x[..., self.dim_xyz :]
+        x_ = self.relu(self.layer_xyz0(xyz))
+        for ii, layer_xyz in enumerate(self.layers_xyz, 1):  # start counting at 1
+            if ii == 4:
+                x_ = torch.cat((x_, xyz), dim=-1)
+            x_ = self.relu(layer_xyz(x_))
+
+        if self.use_viewdirs:
+            alpha = self.fc_alpha(x_)
+            x_ = self.layer_xyz8(x_)
+            x_ = self.relu(self.layer_dir0(torch.cat((x_, direction), dim=-1)))
+            for layer_dir in self.layers_dir:
+                x_ = self.relu(layer_dir(x_))
+
+            rgb = self.fc_rgb(x_)
+            return torch.cat((rgb, alpha), dim=-1)
+        else:
+            return self.output(x_)
 
 
 class FlexibleNeRFModel(torch.nn.Module):
     def __init__(
         self,
-        num_layers=4,
+        num_layers_xyz=4,
+        num_layers_dir=1,
         hidden_size=128,
         skip_connect_every=4,
         num_encoding_fn_xyz=6,
@@ -197,37 +224,37 @@ class FlexibleNeRFModel(torch.nn.Module):
     ):
         super(FlexibleNeRFModel, self).__init__()
 
+        self.use_viewdirs = use_viewdirs
+
         include_input_xyz = 3 if include_input_xyz else 0
         include_input_dir = 3 if include_input_dir else 0
         self.dim_xyz = include_input_xyz + 2 * 3 * num_encoding_fn_xyz
         self.dim_dir = include_input_dir + 2 * 3 * num_encoding_fn_dir
         self.skip_connect_every = skip_connect_every
-        if not use_viewdirs:
-            self.dim_dir = 0
 
-        self.layer1 = torch.nn.Linear(self.dim_xyz, hidden_size)
+        self.layer_xyz0 = torch.nn.Linear(self.dim_xyz, hidden_size)
         self.layers_xyz = torch.nn.ModuleList()
-        for i in range(num_layers - 1):
-            if i % self.skip_connect_every == 0 and i > 0 and i != num_layers - 2:
+        for i in range(1, num_layers_xyz - 1):
+            if i % self.skip_connect_every == 0 and i > 0 and i != num_layers_xyz - 1:
                 self.layers_xyz.append(
                     torch.nn.Linear(self.dim_xyz + hidden_size, hidden_size)
                 )
             else:
                 self.layers_xyz.append(torch.nn.Linear(hidden_size, hidden_size))
 
-        self.use_viewdirs = use_viewdirs
-        if self.use_viewdirs:
-            self.layers_dir = torch.nn.ModuleList()
-            # This deviates from the original paper, and follows the code release instead.
-            self.layers_dir.append(
-                torch.nn.Linear(self.dim_dir + hidden_size, hidden_size // 2)
-            )
 
+        if self.use_viewdirs:
             self.fc_alpha = torch.nn.Linear(hidden_size, 1)
+            self.layer_xyz_last = torch.nn.Linear(hidden_size, hidden_size)
+
+            self.layer_dir0 = torch.nn.Linear(self.dim_dir + hidden_size, hidden_size // 2)
+            self.layers_dir = torch.nn.ModuleList()
+            for ii in range(1, num_layers_dir):  # all layers with directional input
+                self.layers_dir.append(torch.nn.Linear(hidden_size // 2, hidden_size // 2))
+
             self.fc_rgb = torch.nn.Linear(hidden_size // 2, 3)
-            self.fc_feat = torch.nn.Linear(hidden_size, hidden_size)
         else:
-            self.fc_out = torch.nn.Linear(hidden_size, 4)
+            self.output = torch.nn.Linear(hidden_size, 4)
 
         self.relu = torch.nn.functional.relu
 
@@ -236,22 +263,23 @@ class FlexibleNeRFModel(torch.nn.Module):
             xyz, view = x[..., : self.dim_xyz], x[..., self.dim_xyz :]
         else:
             xyz = x[..., : self.dim_xyz]
-        x = self.layer1(xyz)
-        for i in range(len(self.layers_xyz)):
+        x = self.layer_xyz0(xyz)
+        for i, layer_xyz in enumerate(self.layers_xyz, 1):  # start counting from 1
             if (
                 i % self.skip_connect_every == 0
                 and i > 0
                 and i != len(self.layers_xyz) - 1
             ):
                 x = torch.cat((x, xyz), dim=-1)
-            x = self.relu(self.layers_xyz[i](x))
+            x = self.relu(layer_xyz(x))
+
         if self.use_viewdirs:
-            feat = self.relu(self.fc_feat(x))
             alpha = self.fc_alpha(x)
-            x = torch.cat((feat, view), dim=-1)
-            for l in self.layers_dir:
-                x = self.relu(l(x))
+            x = self.layer_xyz_last(x)
+            x = self.relu(self.layer_dir0(torch.cat((x, view), dim=-1)))
+            for layer_dir in self.layers_dir:
+                x = self.relu(layer_dir(x))
             rgb = self.fc_rgb(x)
             return torch.cat((rgb, alpha), dim=-1)
         else:
-            return self.fc_out(x)
+            return self.output(x)
