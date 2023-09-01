@@ -30,7 +30,6 @@ def main():
     configargs = parser.parse_args()
 
     # Read config file.
-    cfg = None
     with open(configargs.config, "r") as f:
         cfg_dict = yaml.load(f, Loader=yaml.FullLoader)
         cfg = CfgNode(cfg_dict)
