@@ -50,6 +50,12 @@ models:
   include_input_xyz: True
   # Whether to include the direction itself in its positional encoding.
   include_input_dir: True
+  # Whether or not to perform log sampling in the positional encoding
+  # of the coordinates.
+  log_sampling_xyz: True
+  # Whether or not to perform log sampling in the positional encoding
+  # of the direction.
+  log_sampling_dir: True
   # Coarse model.
   coarse:
     # Name of the torch.nn.Module class that implements the model.
@@ -62,12 +68,6 @@ models:
     # Add a skip connection once in a while. Note: This parameter
     # won't take affect unless num_layers > skip_connect_every.
     skip_connect_every: 3
-    # Whether or not to perform log sampling in the positional encoding
-    # of the coordinates.
-    log_sampling_xyz: True
-    # Whether or not to perform log sampling in the positional encoding
-    # of the direction.
-    log_sampling_dir: True
   # Fine model.
   fine:
     # Name of the torch.nn.Module class that implements the model.
@@ -80,12 +80,6 @@ models:
     # Add a skip connection once in a while. Note: This parameter
     # won't take affect unless num_layers > skip_connect_every.
     skip_connect_every: 3
-    # Whether or not to perform log sampling in the positional encoding
-    # of the coordinates.
-    log_sampling_xyz: True
-    # Whether or not to perform log sampling in the positional encoding
-    # of the direction.
-    log_sampling_dir: True
 
 # Optimizer params.
 optimizer:

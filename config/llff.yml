@@ -49,6 +49,12 @@ models:
   include_input_xyz: True
   # Whether to include the direction itself in its positional encoding.
   include_input_dir: True
+  # Whether or not to perform log sampling in the positional encoding
+  # of the coordinates.
+  log_sampling_xyz: True
+  # Whether or not to perform log sampling in the positional encoding
+  # of the direction.
+  log_sampling_dir: True
   # Coarse model.
   coarse:
     # Name of the torch.nn.Module class that implements the model.
