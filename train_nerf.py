@@ -375,7 +375,7 @@ def main():
             }
             torch.save(
                 checkpoint_dict,
-                os.path.join(logdir, "checkpoint" + str(i).zfill(5) + ".ckpt"),
+                os.path.join(logdir, f"checkpoint{i:0{len(str(int(cfg.experiment.train_iters)))}}.ckpt"),
             )
             tqdm.write("================== Saved Checkpoint =================")
 

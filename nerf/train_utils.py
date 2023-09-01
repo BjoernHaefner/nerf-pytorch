@@ -179,7 +179,7 @@ def run_one_iter_of_nerf(
             model_coarse,
             model_fine,
             options,
-            mode=getattr(options.nerf, mode),
+            mode=mode,
             encode_position_fn=encode_position_fn,
             encode_direction_fn=encode_direction_fn,
         )
