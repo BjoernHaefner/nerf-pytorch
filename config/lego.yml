@@ -60,26 +60,30 @@ models:
   coarse:
     # Name of the torch.nn.Module class that implements the model.
     type: FlexibleNeRFModel
-    # Number of layers in the model.
-    num_layers: 8
+    # Number of layers in the model before outputting density.
+    num_layers_xyz: 9
+    # Number of layers in the model before outputting density.
+    num_layers_dir: 1
     # Number of hidden units in each layer of the MLP (multi-layer
     # perceptron).
-    hidden_size: 128
+    hidden_size: 256
     # Add a skip connection once in a while. Note: This parameter
     # won't take affect unless num_layers > skip_connect_every.
-    skip_connect_every: 3
+    skip_connect_every: 4
   # Fine model.
   fine:
     # Name of the torch.nn.Module class that implements the model.
     type: FlexibleNeRFModel
-    # Number of layers in the model.
-    num_layers: 8
+    # Number of layers in the model before outputting density.
+    num_layers_xyz: 9
+    # Number of layers in the model before outputting density.
+    num_layers_dir: 1
     # Number of hidden units in each layer of the MLP (multi-layer
     # perceptron).
-    hidden_size: 128
+    hidden_size: 256
     # Add a skip connection once in a while. Note: This parameter
     # won't take affect unless num_layers > skip_connect_every.
-    skip_connect_every: 3
+    skip_connect_every: 4
 
 # Optimizer params.
 optimizer:
