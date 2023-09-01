@@ -122,7 +122,6 @@ def positional_encoding(
     # TESTED
     # Trivially, the input tensor is added to the positional encoding.
     encoding = [tensor] if include_input else []
-    frequency_bands = None
     if log_sampling:
         frequency_bands = 2.0 ** torch.linspace(
             0.0,
@@ -236,7 +235,6 @@ def sample_pdf(bins, weights, num_samples, det=False):
     below = torch.max(torch.zeros_like(inds), inds - 1)
     above = torch.min((cdf.shape[-1] - 1) * torch.ones_like(inds), inds)
     inds_g = torch.stack((below, above), -1)
-    orig_inds_shape = inds_g.shape
 
     cdf_g = gather_cdf_util(cdf, inds_g)
     bins_g = gather_cdf_util(bins, inds_g)

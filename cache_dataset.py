@@ -31,7 +31,6 @@ def cache_nerf_dataset(args):
         i_train, i_val, i_test = i_split
         H, W, focal = hwf
         H, W = int(H), int(W)
-        hwf = [H, W, focal]
     elif args.type == "llff":
         images, poses, bds, render_poses, i_test = load_llff_data(
             args.datapath, factor=args.llff_downsample_factor
@@ -51,7 +50,6 @@ def cache_nerf_dataset(args):
             ]
         )
         H, W, focal = hwf
-        hwf = [int(H), int(W), focal]
         images = torch.from_numpy(images)
         poses = torch.from_numpy(poses)
 
@@ -76,8 +74,6 @@ def cache_nerf_dataset(args):
                 dim=-1,
             )
             coords = coords.reshape((-1, 2))
-            target_s = None
-            save_path = None
             if args.sample_all is False:
                 select_inds = np.random.choice(
                     coords.shape[0], size=(args.num_random_rays), replace=False

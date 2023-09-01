@@ -61,7 +61,6 @@ def main():
             i_train, i_val, i_test = i_split
             H, W, focal = hwf
             H, W = int(H), int(W)
-            hwf = [H, W, focal]
             if cfg.nerf.train.white_background:
                 images = images[..., :3] * images[..., -1:] + (1.0 - images[..., -1:])
         elif cfg.dataset.type.lower() == "llff":
@@ -84,7 +83,6 @@ def main():
             )
             H, W, focal = hwf
             H, W = int(H), int(W)
-            hwf = [H, W, focal]
             images = torch.from_numpy(images)
             poses = torch.from_numpy(poses)
 
@@ -170,8 +168,6 @@ def main():
         if model_fine:
             model_fine.train()
 
-        rgb_coarse, rgb_fine = None, None
-        target_ray_values = None
         if USE_CACHED_DATASET:
             datafile = np.random.choice(train_paths)
             cache_dict = torch.load(datafile)
@@ -249,12 +245,6 @@ def main():
             fine_loss = torch.nn.functional.mse_loss(
                 rgb_fine[..., :3], target_ray_values[..., :3]
             )
-        # loss = torch.nn.functional.mse_loss(rgb_pred[..., :3], target_s[..., :3])
-        loss = 0.0
-        # if fine_loss is not None:
-        #     loss = fine_loss
-        # else:
-        #     loss = coarse_loss
         loss = coarse_loss + (fine_loss if fine_loss is not None else 0.0)
         loss.backward()
         psnr = mse2psnr(loss.item())
@@ -296,8 +286,6 @@ def main():
 
             start = time.time()
             with torch.no_grad():
-                rgb_coarse, rgb_fine = None, None
-                target_ray_values = None
                 if USE_CACHED_DATASET:
                     datafile = np.random.choice(validation_paths)
                     cache_dict = torch.load(datafile)

@@ -57,13 +57,11 @@ def main():
     configargs = parser.parse_args()
 
     # Read config file.
-    cfg = None
     with open(configargs.config, "r") as f:
         cfg_dict = yaml.load(f, Loader=yaml.FullLoader)
         cfg = CfgNode(cfg_dict)
 
     images, poses, render_poses, hwf = None, None, None, None
-    i_train, i_val, i_test = None, None, None
     if cfg.dataset.type.lower() == "blender":
         # Load blender dataset
         images, poses, render_poses, hwf, i_split = load_blender_data(
@@ -71,9 +69,6 @@ def main():
             half_res=cfg.dataset.half_res,
             testskip=cfg.dataset.testskip,
         )
-        i_train, i_val, i_test = i_split
-        H, W, focal = hwf
-        H, W = int(H), int(W)
     elif cfg.dataset.type.lower() == "llff":
         # Load LLFF dataset
         images, poses, bds, render_poses, i_test = load_llff_data(
@@ -157,7 +152,6 @@ def main():
     times_per_image = []
     for i, pose in enumerate(tqdm(render_poses)):
         start = time.time()
-        rgb = None, None
         disp = None, None
         with torch.no_grad():
             pose = pose[:3, :4]

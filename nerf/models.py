@@ -162,6 +162,7 @@ class PaperNeRFModel(torch.nn.Module):
 
     def forward(self, x):
         xyz, dirs = x[..., : self.dim_xyz], x[..., self.dim_xyz :]
+        x = xyz
         for i in range(8):
             if i == 4:
                 x = self.layers_xyz[i](torch.cat((xyz, x), -1))

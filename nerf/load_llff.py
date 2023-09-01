@@ -129,7 +129,7 @@ def _load_data(basedir, factor=None, width=None, height=None, load_imgs=True):
         else:
             return imageio.imread(f)
 
-    imgs = imgs = [imread(f)[..., :3] / 255.0 for f in imgfiles]
+    imgs = [imread(f)[..., :3] / 255.0 for f in imgfiles]
     imgs = np.stack(imgs, -1)
 
     print("Loaded image data", imgs.shape, poses[:, -1, 0])
@@ -203,12 +203,6 @@ def spherify_poses(poses, bds):
         return np.concatenate(
             [p, np.tile(np.reshape(np.eye(4)[-1, :], [1, 1, 4]), [p.shape[0], 1, 1])], 1
         )
-
-    # p34_to_44 = lambda p: np.concatenate(
-    #     [p, np.tile(np.reshape(np.eye(4)[-1, :], [1, 1, 4]), [p.shape[0], 1, 1])], 1
-    # )
-
-    p34_to_44 = add_row_to_homogenize_transform
 
     rays_d = poses[:, :3, 2:3]
     rays_o = poses[:, :3, 3:4]
@@ -318,7 +312,6 @@ def load_llff_data(
         focal = mean_dz
 
         # Get radii for spiral path
-        shrink_factor = 0.8
         zdelta = close_depth * 0.2
         tt = poses[:, :3, 3]  # ptstocam(poses[:3,3,:].T, c2w).T
         rads = np.percentile(np.abs(tt), 90, 0)
