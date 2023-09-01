@@ -100,6 +100,10 @@ def main():
 
     # Initialize a coarse resolution model.
     model_coarse = getattr(models, cfg.models.coarse.type)(
+        num_layers_xyz=cfg.models.coarse.num_layers_xyz,
+        num_layers_dir=cfg.models.coarse.num_layers_dir,
+        hidden_size=cfg.models.coarse.hidden_size,
+        skip_connect_every=cfg.models.coarse.skip_connect_every,
         num_encoding_fn_xyz=cfg.models.num_encoding_fn_xyz,
         num_encoding_fn_dir=cfg.models.num_encoding_fn_dir,
         include_input_xyz=cfg.models.include_input_xyz,
@@ -112,6 +116,10 @@ def main():
     model_fine = None
     if hasattr(cfg.models, "fine"):
         model_fine = getattr(models, cfg.models.fine.type)(
+            num_layers_xyz=cfg.models.fine.num_layers_xyz,
+            num_layers_dir=cfg.models.fine.num_layers_dir,
+            hidden_size=cfg.models.fine.hidden_size,
+            skip_connect_every=cfg.models.fine.skip_connect_every,
             num_encoding_fn_xyz=cfg.models.num_encoding_fn_xyz,
             num_encoding_fn_dir=cfg.models.num_encoding_fn_dir,
             include_input_xyz=cfg.models.include_input_xyz,
