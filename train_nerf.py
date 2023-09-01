@@ -23,9 +23,9 @@ def main():
     )
     parser.add_argument(
         "--load-checkpoint",
-        type=str,
-        default="",
-        help="Path to load saved checkpoint from.",
+        action='store_true',
+        default=False,
+        help="Load last checkpoint from given config",
     )
     configargs = parser.parse_args()
 
@@ -159,13 +159,17 @@ def main():
     start_iter = 0
 
     # Load an existing checkpoint, if a path is specified.
-    if os.path.exists(configargs.load_checkpoint):
-        checkpoint = torch.load(configargs.load_checkpoint)
-        model_coarse.load_state_dict(checkpoint["model_coarse_state_dict"])
-        if checkpoint["model_fine_state_dict"]:
-            model_fine.load_state_dict(checkpoint["model_fine_state_dict"])
-        optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
-        start_iter = checkpoint["iter"]
+    if configargs.load_checkpoint:
+        log_id_path = os.path.join(cfg.experiment.logdir, cfg.experiment.id)
+        if os.path.exists(log_id_path):
+            checkpoints = sorted([ckpt for ckpt in os.listdir(log_id_path) if ckpt.endswith('.ckpt')])
+            if len(checkpoints) > 0:
+                checkpoint = torch.load(os.path.join(log_id_path,checkpoints[-1]))
+                model_coarse.load_state_dict(checkpoint["model_coarse_state_dict"])
+                if checkpoint["model_fine_state_dict"]:
+                    model_fine.load_state_dict(checkpoint["model_fine_state_dict"])
+                optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+                start_iter = checkpoint["iter"]
 
     # # TODO: Prepare raybatch tensor if batching random rays
 
